@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZÂN ZANG PUZZLE</title>
+<style>
+@font-face {
+    font-family: Noelan;
+    src: url("Noelan.ttf");
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 20px 10px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #211d39;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+/* ================== START SCREEN ================== */
+.start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: linear-gradient(rgba(33, 29, 57, 0.75), rgba(33, 29, 57, 0.9)), url('banner.jpg');
+    background-size: cover;
+    background-position: center;
+    text-align: center;
+    transition: opacity 0.5s ease;
+}
+
+.start-content h1 {
+    margin: 0 0 10px 0;
+    font-family: Noelan, cursive, sans-serif;
+    font-size: clamp(45px, 9vw, 85px);
+    color: #ffcf70;
+    text-shadow: 0 5px 20px rgba(0,0,0,0.8);
+}
+
+.start-content p {
+    font-size: 16px;
+    color: #d5cdea;
+    margin-bottom: 40px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    padding: 0 20px;
+    line-height: 1.5;
+}
+
+.start-content button {
+    font-size: 18px;
+    padding: 15px 40px;
+    border-radius: 50px;
+    background: #e5b85e;
+    color: #211d39;
+    font-weight: bold;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.start-content button:hover {
+    background: #ffcf70;
+    transform: scale(1.05);
+}
+
+.start-content button:active {
+    transform: scale(0.95);
+}
+
+/* ================== GAME AREA ================== */
+.game {
+    width: 100%;
+    max-width: 850px;
+    padding: 25px 18px;
+    text-align: center;
+    background: #292440;
+    border-radius: 18px;
+    box-shadow: 0 5px 25px #100d20;
+}
+
+.game > h1 {
+    margin: 10px 0 18px;
+    color: #ffcf70;
+    font-size: 27px;
+}
+
+#imageName {
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.stats {
+    display: flex;
+    gap: 7px;
+    margin-bottom: 18px;
+}
+
+.stat {
+    flex: 1;
+    padding: 13px 5px;
+    background: #393451;
+    border-radius: 9px;
+    color: #d5cdea;
+    font-size: 12px;
+}
+
+.stat strong {
+    display: block;
+    margin-top: 5px;
+    color: #ffcf70;
+    font-size: 17px;
+}
+
+#time {
+    color: #ff6666;
+}
+
+.game-area {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 15px;
+}
+
+.reference-box {
+    width: 130px;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.reference-box p.title {
+    margin-bottom: 8px;
+    color: #ffcf70;
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+}
+
+#referenceImage {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: contain;
+    background: white;
+    border: 4px solid #e9c46d;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.puzzle {
+    width: min(62vw, 390px);
+    aspect-ratio: 1 / 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 5px;
+    padding: 5px;
+    background: #e9c46d;
+    border-radius: 9px;
+    touch-action: none;
+    user-select: none;
+}
+
+.slot {
+    min-width: 0;
+    min-height: 0;
+    background: #1c182e;
+    border-radius: 3px;
+    position: relative;
+    cursor: grab;
+    touch-action: none;
+}
+
+.slot.selected {
+    outline: 4px solid #ffdc75;
+    outline-offset: -4px;
+    z-index: 2;
+}
+
+.slot.dragging {
+    z-index: 20;
+}
+
+.slot.drop-target {
+    outline: 4px solid #65ff91;
+    outline-offset: -4px;
+}
+
+.piece {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: center;
+    backface-visibility: hidden;
+    pointer-events: none;
+    border-radius: 3px;
+}
+
+.piece.is-dragging {
+    transition: none !important;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.7);
+    z-index: 100;
+    position: relative;
+}
+
+.progress-container {
+    width: 100%;
+    height: 10px;
+    margin-top: 18px;
+    overflow: hidden;
+    background: #48425f;
+    border-radius: 20px;
+}
+
+#progress {
+    width: 0%;
+    height: 100%;
+    background: #e9bd65;
+    transition: width 0.3s ease;
+}
+
+#progressText {
+    margin: 12px 0;
+    font-size: 13px;
+}
+
+#message {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #ffcf70;
+    font-weight: bold;
+}
+
+#instructions {
+    margin-top: 15px;
+    color: #c7bfdc;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* ================== WIN & LOSE CONTROLS ================== */
+.info-box {
+    background: #393451;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #d5cdea;
+    margin-bottom: 15px;
+    border: 2px solid #e9c46d;
+}
+
+.info-box ul {
+    padding-left: 20px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.info-box li {
+    margin-bottom: 6px;
+}
+
+.lose-msg {
+    font-size: 22px;
+    font-weight: bold;
+    color: #ff4747;
+    margin-bottom: 15px;
+    text-shadow: 0 2px 10px rgba(255, 71, 71, 0.4);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 15px 25px;
+    font-size: 16px;
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s;
+    flex: 1;
+    min-width: 140px;
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+.win-btn { background: #28a745; width: 100%; }
+.retry-btn { background: #e5b85e; color: #211d39; }
+.next-btn { background: #ff4747; }
+
+/* ================== OVERLAY ================== */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #000d;
+    transition: background 0.3s ease;
+}
+
+.overlay h2 {
+    margin: 0;
+    font-family: Noelan, cursive, sans-serif;
+    font-size: clamp(35px, 9vw, 90px);
+    text-shadow: 0 5px 20px #000;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.overlay p {
+    font-size: 17px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.win { color: #65ff91; }
+.lose { color: #ff3030; }
+
+@media (max-width: 600px) {
+    .game {
+        padding: 18px 10px;
+    }
+    .game-area {
+        gap: 8px;
+        flex-direction: column;
+        align-items: center;
+    }
+    .reference-box {
+        width: 100%;
+        max-width: 330px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    #referenceImage {
+        width: 150px;
+    }
+    .puzzle {
+        width: min(65vw, 330px);
+    }
+    .stats {
+        gap: 5px;
+    }
+    .stat {
+        padding: 10px 3px;
+    }
+}
+
+@media (max-width: 360px) {
+    .puzzle {
+        width: 70vw;
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- MÀN HÌNH CHỜ -->
+<div id="startScreen" class="start-screen">
+    <div class="start-content">
+        <h1>✦ ZÂN ZANG PUZZLE ✦</h1>
+        <p>Khám phá di sản văn hóa Việt Nam<br>qua từng mảnh ghép</p>
+        <button onclick="initGame()">▶ BẮT ĐẦU CHƠI</button>
+    </div>
+</div>
+
+<div class="game">
+    <h1>✦ ZÂN ZANG PUZZLE ✦</h1>
+
+    <div id="imageName">Đang chuẩn bị ảnh...</div>
+
+    <div class="stats">
+        <div class="stat">Thời gian<strong id="time">01:00</strong></div>
+        <div class="stat">Số lượt<strong id="moves">0</strong></div>
+        <div class="stat">Kỷ lục<strong id="bestTime">--:--</strong></div>
+    </div>
+
+    <div class="game-area">
+        <div class="reference-box">
+            <p class="title">ẢNH MẪU</p>
+            <img id="referenceImage" alt="Ảnh mẫu">
+        </div>
+
+        <div id="puzzle" class="puzzle"></div>
+    </div>
+
+    <div class="progress-container">
+        <div id="progress"></div>
+    </div>
+
+    <p id="progressText">Hoàn thành: 0/9</p>
+    <div id="message">Đang chờ...</div>
+
+    <div id="instructions">
+        Kéo thả các mảnh để đổi vị trí.<br>
+        Hoặc nhấn hai ô để đổi vị trí.<br>
+        Nhấn đúp hoặc chạm hai lần để xoay 90 độ.<br>
+        Bạn có 60 giây để hoàn thành!
+    </div>
+    
+    <!-- KHU VỰC HIỆN RA KHI THẮNG -->
+    <div id="winControls" style="display: none; margin-top: 25px;">
+        <div class="info-box" id="infoContent"></div>
+        <button class="action-btn win-btn" onclick="restartGame()">ẢNH TIẾP THEO</button>
+    </div>
+
+    <!-- KHU VỰC HIỆN RA KHI THUA -->
+    <div id="loseControls" style="display: none; margin-top: 25px;">
+        <div class="lose-msg">🎁 CÓ QUÀ NẾU THẮNG 🎁</div>
+        <div class="btn-group">
+            <button class="action-btn retry-btn" onclick="replayGame()">CHƠI LẠI</button>
+            <button class="action-btn next-btn" onclick="restartGame()">CHUYỂN ẢNH</button>
+        </div>
+    </div>
+</div>
+
+<div id="overlay" class="overlay">
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+</div>
+
+<script>
+const images = [
+    { 
+        src: "anh1.jpg", 
+        name: "Áo Nhật Bình",
+        description: `<b>Áo Nhật Bình</b> là lễ phục cung đình của nữ giới hoàng tộc thời nhà Nguyễn (1802–1945), đặc trưng bởi phần cổ áo lớn khép lại thành hình chữ nhật trước ngực.
+        <ul>
+            <li><b>Thiết kế:</b> Phom rộng, tay dài thêu dải ngũ sắc; thân áo thêu họa tiết rồng, phụng, hoa sen.</li>
+            <li><b>Màu sắc:</b> Phân định thứ bậc rõ ràng (vàng cho Hoàng hậu, đỏ cho Công chúa).</li>
+            <li><b>Ngày nay:</b> Phổ biến trong lễ cưới hỏi truyền thống và chụp ảnh cổ phục.</li>
+        </ul>`
+    },
+    { 
+        src: "anh2.jpg", 
+        name: "Đàn Đáy",
+        description: `<b>Đàn đáy</b> (vô đề cầm) là loại đàn dây gảy truyền thống độc đáo do người Việt sáng tạo, gắn liền với nghệ thuật hát Ca trù.
+        <ul>
+            <li><b>Cấu tạo:</b> Thùng đàn hình thang không có mặt đáy, cần đàn rất dài, có 3 dây tơ.</li>
+            <li><b>Âm sắc:</b> Trầm ấm, vang sâu, mang tính tự sự.</li>
+            <li><b>Vai trò:</b> Là nhạc cụ đệm bắt buộc trong mỗi canh hát Ca trù.</li>
+        </ul>`
+    },
+    { 
+        src: "anh3.jpg", 
+        name: "Đàn Nguyệt",
+        description: `<b>Đàn nguyệt</b> (miền Nam gọi là đàn kìm) nổi bật với hộp đàn hình tròn giống mặt trăng.
+        <ul>
+            <li><b>Cấu tạo:</b> Thùng đàn tròn dẹt bằng gỗ, cần đàn dài gắn 8–11 phím cao và mắc 2 dây.</li>
+            <li><b>Âm sắc:</b> Trong trẻo, tươi sáng, ngân vang và giàu sức biểu cảm.</li>
+            <li><b>Vai trò:</b> Nhạc cụ chủ đạo trong Đờn ca tài tử, Cải lương, Hát chầu văn.</li>
+        </ul>`
+    },
+    { 
+        src: "anh4.jpg", 
+        name: "Nón Lá",
+        description: `<b>Nón lá</b> là vật dụng che nắng mưa truyền thống và là biểu tượng văn hóa của phụ nữ Việt Nam.
+        <ul>
+            <li><b>Cấu tạo:</b> Khung nón làm từ các vòng tre uốn tròn, bên ngoài lợp lá cọ (lá gồi) khâu bằng cước.</li>
+            <li><b>Các dòng nón nổi tiếng:</b> Nón bài thơ (Huế), nón Chuông (Hà Nội), nón quai thao (Bắc Bộ).</li>
+        </ul>`
+    },
+    { 
+        src: "anh5.jpg", 
+        name: "Tranh Hàng Trống",
+        description: `<b>Tranh Hàng Trống</b> là dòng tranh dân gian nổi tiếng của Hà Nội xưa, phục vụ nhu cầu thờ cúng và trang trí Tết.
+        <ul>
+            <li><b>Kỹ thuật:</b> Kết hợp in ván gỗ (in nét đen) và vẽ tay (vờn màu phẩm tạo độ đậm nhạt).</li>
+            <li><b>Chủ đề:</b> Tranh thờ (Ngũ Hổ, Tứ Phủ) và tranh Tết (Lý ngư vọng nguyệt, Tố nữ).</li>
+            <li><b>Thẩm mỹ:</b> Đường nét thanh mảnh, màu sắc rực rỡ, uyển chuyển.</li>
+        </ul>`
+    }
+];
+
+const puzzle = document.getElementById("puzzle");
+const referenceImage = document.getElementById("referenceImage");
+const infoContent = document.getElementById("infoContent"); 
+
+let currentImage = null;
+let tiles = [];
+let slots = [];
+
+let selected = -1;
+let moves = 0;
+let seconds = 60;
+let endTime = 0;
+let timer = null;
+let playing = false;
+let resultTimeoutTimer = null; 
+
+let pointerStart = null;
+let lastTap = { index: -1, time: 0 };
+
+function initGame() {
+    const startScreen = document.getElementById("startScreen");
+    startScreen.style.opacity = "0"; 
+    setTimeout(() => {
+        startScreen.style.display = "none"; 
+        loadNextImage(); 
+    }, 500); 
+}
+
+function formatTime(value) {
+    const m = Math.floor(value / 60);
+    const s = value % 60;
+    return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+}
+
+function updateStats() {
+    document.getElementById("time").textContent = formatTime(seconds);
+    document.getElementById("moves").textContent = moves;
+    const best = localStorage.getItem("zanzangBest");
+    document.getElementById("bestTime").textContent = best !== null ? formatTime(Number(best)) : "--:--";
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+function createSlots() {
+    puzzle.innerHTML = "";
+    slots = [];
+    for (let i = 0; i < 9; i++) {
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.dataset.index = i;
+        slots.push(slot);
+        puzzle.appendChild(slot);
+    }
+}
+
+function createTiles(img) {
+    tiles = [];
+    const pieceWidth = img.naturalWidth / 3;
+    const pieceHeight = img.naturalHeight / 3;
+
+    for (let i = 0; i < 9; i++) {
+        const row = Math.floor(i / 3);
+        const col = i % 3;
+        const canvas = document.createElement("canvas");
+        
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext("2d", { alpha: false });
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        
+        ctx.drawImage(img, col * pieceWidth, row * pieceHeight, pieceWidth, pieceHeight, 0, 0, 128, 128);
+        
+        canvas.className = "piece";
+        tiles.push({ id: i, rotation: 0, element: canvas });
+    }
+}
+
+function updateRotation(tile) {
+    tile.element.style.transform = `rotate(${tile.rotation}deg)`;
+}
+
+function displayTiles() {
+    for (let i = 0; i < 9; i++) {
+        slots[i].replaceChildren(tiles[i].element);
+        updateRotation(tiles[i]);
+    }
+    updateSelection();
+    updateProgress();
+}
+
+function updateSelection() {
+    for (let i = 0; i < 9; i++) {
+        slots[i].classList.toggle("selected", i === selected);
+    }
+}
+
+function handleTap(index) {
+    if (!playing) return;
+    if (selected === -1) {
+        selected = index;
+        updateSelection();
+        return;
+    }
+    if (selected === index) {
+        selected = -1;
+        updateSelection();
+        return;
+    }
+    const first = selected;
+    selected = -1;
+    swapTiles(first, index);
+}
+
+function rotateTile(index) {
+    if (!playing) return;
+    selected = -1;
+    const tile = tiles[index];
+    tile.rotation = (tile.rotation + 90) % 360;
+    
+    updateRotation(tile);
+    moves++;
+    
+    updateStats();
+    updateSelection();
+    updateProgress();
+    setTimeout(checkWin, 300);
+}
+
+function swapTiles(a, b) {
+    if (!playing || a === b) return;
+    const tileA = tiles[a];
+    const tileB = tiles[b];
+
+    tiles[a] = tileB;
+    tiles[b] = tileA;
+
+    slots[a].replaceChildren(tileB.element);
+    slots[b].replaceChildren(tileA.element);
+
+    selected = -1;
+    moves++;
+    updateStats();
+    updateSelection();
+    updateProgress();
+    checkWin();
+}
+
+function updateProgress() {
+    let correct = 0;
+    for (let i = 0; i < 9; i++) {
+        if (tiles[i].id === i && tiles[i].rotation === 0) correct++;
+    }
+    document.getElementById("progress").style.width = (correct / 9 * 100) + "%";
+    document.getElementById("progressText").textContent = `Hoàn thành: ${correct}/9`;
+}
+
+function checkWin() {
+    const won = tiles.every((tile, index) => tile.id === index && tile.rotation === 0);
+    if (won) endGame(true);
+}
+
+function startTimer() {
+    clearInterval(timer);
+    endTime = Date.now() + 60000;
+    seconds = 60;
+    
+    timer = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+        if (remaining !== seconds) {
+            seconds = remaining;
+            updateStats();
+        }
+        if (remaining <= 0) endGame(false);
+    }, 250);
+}
+
+function startGame() {
+    clearInterval(timer);
+    playing = true;
+    selected = -1;
+    moves = 0;
+    seconds = 60;
+    pointerStart = null;
+
+    tiles.forEach(tile => tile.rotation = Math.floor(Math.random() * 4) * 90);
+    shuffle(tiles);
+    if (tiles.every((tile, index) => tile.id === index && tile.rotation === 0)) tiles[0].rotation = 90;
+
+    displayTiles();
+    updateStats();
+
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("message").textContent = "Bắt đầu! Bạn có 60 giây!";
+    startTimer();
+}
+
+function endGame(win) {
+    if (!playing) return;
+    playing = false;
+    clearInterval(timer);
+    pointerStart = null;
+
+    const overlay = document.getElementById("overlay");
+    const title = document.getElementById("resultTitle");
+    const text = document.getElementById("resultText");
+
+    overlay.style.display = "flex";
+
+    if (win) {
+        title.textContent = "CHUC MUNG THANG LON👍";
+        title.className = "win";
+        overlay.style.background = "rgba(0, 100, 30, 0.85)"; 
+        
+        const elapsed = 60 - seconds;
+        text.innerHTML = `Hoàn thành trong ${formatTime(elapsed)}<br><span style='font-size: 14px; color: #ccffcc;'>(Đang lấy thông tin mảnh ghép...)</span>`;
+        
+        const best = localStorage.getItem("zanzangBest");
+        if (best === null || elapsed < Number(best)) localStorage.setItem("zanzangBest", elapsed);
+        updateStats();
+
+        resultTimeoutTimer = setTimeout(() => {
+            if (!playing) {
+                overlay.style.display = "none";
+                const winBox = document.getElementById("winControls");
+                winBox.style.display = "block";
+                winBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }, 4000); 
+
+    } else {
+        title.textContent = "NON VL 🤡🤡🤡";
+        title.className = "lose";
+        overlay.style.background = "rgba(150, 0, 0, 0.85)"; 
+        text.innerHTML = "Đã hết thời gian!<br><span style='font-size: 14px; color: #ffcccc;'>(Đang thoát ra...)</span>";
+        
+        resultTimeoutTimer = setTimeout(() => {
+            if (!playing) {
+                overlay.style.display = "none";
+                const loseBox = document.getElementById("loseControls");
+                loseBox.style.display = "block";
+                loseBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }, 4000); 
+    }
+}
+
+async function loadNextImage() {
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("winControls").style.display = "none";
+    document.getElementById("loseControls").style.display = "none";
+    clearTimeout(resultTimeoutTimer); 
+
+    createSlots();
+    
+    let nextImage;
+    do {
+        nextImage = images[Math.floor(Math.random() * images.length)];
+    } while (currentImage && nextImage === currentImage && images.length > 1);
+    
+    currentImage = nextImage;
+    
+    document.getElementById("imageName").textContent = "Ảnh đang chơi: " + currentImage.name;
+    document.getElementById("message").textContent = "Đang tải ảnh, vui lòng chờ...";
+    infoContent.innerHTML = currentImage.description;
+
+    try {
+        const img = await loadImage(currentImage.src);
+        referenceImage.src = currentImage.src;
+        document.getElementById("message").textContent = "Đang cắt ảnh thành 9 mảnh...";
+        createTiles(img);
+        startGame();
+    } catch (error) {
+        document.getElementById("message").textContent = "Không tải được ảnh: " + currentImage.src;
+    }
+}
+
+async function replayGame() {
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("winControls").style.display = "none";
+    document.getElementById("loseControls").style.display = "none";
+    clearTimeout(resultTimeoutTimer); 
+
+    createSlots();
+    document.getElementById("message").textContent = "Đang tải lại ảnh...";
+
+    try {
+        const img = await loadImage(currentImage.src);
+        createTiles(img);
+        startGame();
+    } catch (error) {
+        document.getElementById("message").textContent = "Không tải được ảnh: " + currentImage.src;
+    }
+}
+
+function restartGame() {
+    loadNextImage();
+}
+
+function findSlotAt(x, y) {
+    const element = document.elementFromPoint(x, y);
+    const slot = element?.closest(".slot");
+    if (!slot || !puzzle.contains(slot)) return -1;
+    return Number(slot.dataset.index);
+}
+
+puzzle.addEventListener("pointerdown", event => {
+    if (!playing) return;
+    const slot = event.target.closest(".slot");
+    if (!slot) return;
+    
+    const index = Number(slot.dataset.index);
+    const piece = slot.querySelector(".piece");
+
+    pointerStart = {
+        index, x: event.clientX, y: event.clientY, moved: false,
+        pointerId: event.pointerId, piece: piece, baseRotation: tiles[index].rotation
+    };
+    slot.classList.add("dragging");
+    event.preventDefault(); 
+});
+
+document.addEventListener("pointermove", event => {
+    if (!pointerStart || !playing) return;
+    if (event.pointerId !== pointerStart.pointerId) return;
+
+    const dx = event.clientX - pointerStart.x;
+    const dy = event.clientY - pointerStart.y;
+
+    if (!pointerStart.moved && (Math.abs(dx) + Math.abs(dy) > 8)) {
+        pointerStart.moved = true;
+        if (pointerStart.piece) pointerStart.piece.classList.add("is-dragging");
+    }
+
+    if (pointerStart.moved) {
+        if (pointerStart.piece) {
+            pointerStart.piece.style.transform = `translate(${dx}px, ${dy}px) rotate(${pointerStart.baseRotation}deg) scale(1.08)`;
+        }
+        const target = findSlotAt(event.clientX, event.clientY);
+        slots.forEach((slot, i) => {
+            slot.classList.toggle("drop-target", i === target && target !== pointerStart.index);
+        });
+    }
+});
+
+document.addEventListener("pointerup", event => {
+    if (!pointerStart || !playing) return;
+    if (event.pointerId !== pointerStart.pointerId) return;
+
+    const start = pointerStart.index;
+    const moved = pointerStart.moved;
+    
+    if (pointerStart.piece) {
+        pointerStart.piece.classList.remove("is-dragging");
+        pointerStart.piece.style.transform = `rotate(${tiles[start].rotation}deg)`;
+    }
+
+    const target = findSlotAt(event.clientX, event.clientY);
+    slots.forEach(slot => slot.classList.remove("dragging", "drop-target"));
+    pointerStart = null;
+
+    if (moved) {
+        if (target !== -1 && target !== start) swapTiles(start, target);
+        return;
+    }
+
+    const now = Date.now();
+    if (lastTap.index === start && now - lastTap.time < 350) {
+        lastTap.index = -1;
+        rotateTile(start);
+    } else {
+        lastTap.index = start;
+        lastTap.time = now;
+        handleTap(start);
+    }
+});
+
+document.addEventListener("pointercancel", () => {
+    if (!pointerStart) return;
+    if (pointerStart.piece) {
+        pointerStart.piece.classList.remove("is-dragging");
+        pointerStart.piece.style.transform = `rotate(${pointerStart.baseRotation}deg)`;
+    }
+    slots.forEach(slot => slot.classList.remove("dragging", "drop-target"));
+    pointerStart = null;
+});
+</script>
+</body>
+</html>
